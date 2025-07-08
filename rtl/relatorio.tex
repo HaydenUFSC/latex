@@ -1,0 +1,318 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{url}
+\usepackage[utf8]{inputenc}
+\usepackage[portuguese]{babel}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,automata,positioning}
+
+% Configuração para código VHDL
+\lstdefinestyle{vhdl}{
+    language=VHDL,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{red},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    frame=single,
+    breaklines=true,
+    captionpos=b
+}
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\begin{document}
+
+\title{Implementação em Hardware de Sistema de Transposição de Matrizes Utilizando VHDL: Uma Abordagem Configurável para Aplicações de Processamento Digital de Sinais}
+
+\author{
+Marlon Vieira da Silva (20150154),\\
+Vitor Luiz Paz Roseno da Silva (20202147),\\
+Tiago Bucar Vasconcelos Nazari (22200377), \\
+Victor Henrique Labes de Figueiredo (22200378),\\
+Carlos Benedito Hayden de Albuquerque Junior (23100455), \\
+Douglas Lessa Graciosa (24250313),\\
+Josenei Montibeller (18250076),\\
+Isis Rosa de Lima (22201733) \\
+\textit{Departamento de Informática e Estatística} \\
+\textit{Universidade Federal de Santa Catarina} \\
+Florianópolis, Brasil 
+\and
+Prof. Ismael Seidel \\
+\textit{Departamento de Informática e Estatística} \\
+\textit{Universidade Federal de Santa Catarina} \\
+Florianópolis, Brasil
+}
+
+\maketitle
+
+\begin{abstract}
+Este artigo apresenta uma implementação em hardware abrangente de um sistema de transposição de matrizes utilizando VHDL. O projeto apresenta uma arquitetura configurável capaz de manipular matrizes de até 255×255 elementos com largura de dados parametrizável. O sistema emprega um controlador de máquina de estados finitos coordenado com uma unidade de caminho de dados para gerenciar eficientemente os padrões de acesso à memória necessários para operações de transposição de matrizes. A implementação demonstra a aplicação prática de princípios de projeto digital no desenvolvimento de hardware especializado para operações matriciais comumente requeridas em aplicações de processamento digital de sinais.
+\end{abstract}
+
+\begin{IEEEkeywords}
+VHDL, transposição de matrizes, máquina de estados finitos, processamento digital de sinais, projeto de hardware, FPGA
+\end{IEEEkeywords}
+
+\section{Introdução}
+
+A transposição de matrizes é uma operação fundamental em álgebra linear e aplicações de processamento digital de sinais. A operação envolve a troca das linhas e colunas de uma matriz, onde o elemento $A_{ij}$ torna-se $A_{ji}$ na matriz transposta. Embora implementações em software sejam comuns, soluções baseadas em hardware oferecem vantagens significativas em termos de velocidade e eficiência energética para aplicações em tempo real.
+
+Este trabalho apresenta uma implementação completa em VHDL de um sistema de transposição de matrizes projetado para implantação em FPGA. A arquitetura do sistema compreende um controlador comportamental implementado como uma máquina de estados finitos (FSM) e um caminho de dados estrutural que gerencia o endereçamento complexo necessário para transposição eficiente de matrizes.
+
+As principais contribuições deste trabalho incluem: (1) uma arquitetura de hardware parametrizável suportando matrizes de até 255×255, (2) um padrão eficiente de acesso à memória que minimiza ciclos de processamento, (3) uma abordagem de projeto modular facilitando integração com sistemas maiores, e (4) verificação abrangente através de simulação comportamental.
+
+\section{Principais Características}
+
+\begin{itemize}
+    \item Arquitetura modular e parametrizável.
+    \item Separação clara entre controle (FSM) e datapath.
+    \item Biblioteca de componentes reutilizáveis (registradores, multiplexadores, comparadores, somadores).
+    \item Suporte a diferentes larguras de dados e tamanhos de matriz via generics.
+    \item Facilidade de integração com memórias externas.
+\end{itemize}
+
+\section{Algoritmo Utilizado}
+
+O sistema implementa um algoritmo sequencial para varredura e processamento de elementos de duas matrizes (ou blocos de dados), controlado por uma máquina de estados finitos (FSM). O fluxo básico é:
+
+\begin{enumerate}
+    \item Inicialização dos contadores e registradores com os parâmetros de tamanho da matriz.
+    \item Laço de leitura dos elementos das matrizes A e B.
+    \item Processamento dos dados lidos (armazenamento, comparação, etc.).
+    \item Escrita dos resultados e atualização dos endereços.
+    \item Repetição do processo até o término do bloco/matriz.
+\end{enumerate}
+
+\section{Arquitetura do Sistema}
+
+O sistema é composto por dois blocos principais:
+
+\begin{itemize}
+    \item \textbf{Bloco de Controle (\texttt{matriz\_bc}):} Implementa a FSM responsável por coordenar as operações de leitura, escrita e controle dos contadores/endereço.
+    \item \textbf{Bloco Operativo (\texttt{matriz\_bo}):} Realiza o processamento dos dados, gerenciamento dos contadores, geração de endereços e armazenamento temporário dos dados.
+\end{itemize}
+
+A integração entre os blocos é feita no módulo top-level (\texttt{matriz.vhdl}), que conecta os sinais de controle, dados e endereços entre os módulos internos e as interfaces externas.
+
+\subsection{Interface de Top Level}
+
+A interface do sistema acomoda dimensões de matriz configuráveis e largura de dados através de parâmetros genéricos. As portas primárias incluem:
+
+\begin{itemize}
+\item \texttt{clk}, \texttt{rst\_a}: Sinais padrão de clock e reset assíncrono
+\item \texttt{enable}: Sinal de ativação do sistema
+\item \texttt{num\_linhas}, \texttt{num\_colunas}: Entradas das dimensões da matriz
+\item \texttt{elemento1\_o}, \texttt{elemento2\_o}: Entradas de dados de leitura da memória
+\item \texttt{elemento1\_t}, \texttt{elemento2\_t}: Saídas de dados de escrita da memória
+\item \texttt{address1}, \texttt{address2}: Endereços de memória dual-port
+\item \texttt{read\_mem}, \texttt{write\_mem}: Sinais de controle da memória
+\item \texttt{done}: Indicador de conclusão da operação
+\end{itemize}
+
+A interface de memória dual-port permite acesso simultâneo a duas localizações de memória, melhorando significativamente o throughput comparado a implementações single-port.
+
+\subsection{Bloco de Controle}
+
+O bloco de controle (\texttt{matriz\_bc}) implementa uma FSM de 8 estados que orquestra a operação de transposição. A sequência de estados segue um protocolo cuidadosamente projetado:
+
+\begin{enumerate}
+\item \texttt{S0}: Estado inativo, aguardando sinal de habilitação
+\item \texttt{S1}: Inicializar contadores e registradores
+\item \texttt{S2}: Calcular endereços de memória para posição atual
+\item \texttt{S3}: Ler primeiro elemento da matriz
+\item \texttt{S4}: Ler segundo elemento da matriz
+\item \texttt{S5}: Escrever primeiro elemento na posição transposta
+\item \texttt{S6}: Escrever segundo elemento na posição transposta
+\item \texttt{S7}: Atualizar contadores e verificar conclusão
+\end{enumerate}
+
+\subsection{Implementação da Máquina de Estados Finitos}
+
+A implementação da FSM usa tipos enumerados para representação de estados, garantindo código sintetizável:
+
+\begin{lstlisting}[style=vhdl]
+type tipo_estado is(
+    S0, S1, S2, S3, S4, S5, S6, S7
+);
+signal Eatual, Eprox : tipo_estado;
+\end{lstlisting}
+
+\begin{figure}[htbp]
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}[->,>=Stealth,auto,node distance=2cm,semithick]
+  \tikzstyle{every state}=[draw=black,thick,fill=gray!10,minimum size=5pt]
+
+ % Estados posicionados conforme solicitado
+  \node[state,initial] (S0) {S0};
+  \node[state,right=5cm of S0] (S1) {S1};
+  \node[state,below=1cm of S1] (S2) {S2};
+  \node[state,below=1cm of S2] (S3) {S3};
+  \node[state,below=1cm of S3] (S4) {S4};
+  \node[state,left=3cm of S4] (S5) {S5};
+  \node[state,left=3cm of S5] (S6) {S6};
+  \node[state,left=3cm of S2] (S7) {S7};
+
+  % Transições principais
+  \path (S0) edge[bend left=10] node[above] {iniciar=1} (S1);
+  \path (S1) edge node[right] {} (S2);
+  \path (S2) edge node[right] {} (S3);
+  \path (S3) edge node[right] {} (S4);
+  \path (S4) edge node[below] {} (S5);
+  \path (S5) edge node[below] {} (S6);
+
+  % S6 para S2 (loop)
+  \path (S6) edge[bend right=10] node[right] {comp\_p\_out=1} (S2);
+
+  % S6 para S7
+  \path (S6) edge[bend left=30] node[left] {comp\_p\_out=0} (S7);
+
+  % S7 para S0
+  \path (S7) edge[bend left=15] node[left] {igual=1} (S0);
+
+  % S7 para S2
+  \path (S7) edge[bend left=10] node[above] {igual=0} (S2);
+
+  % S0 loop
+  \path (S0) edge[loop above] node {iniciar=0} (S0);
+\end{tikzpicture}
+}
+\caption{Diagrama de estados da FSM matriz\_bc}
+\end{figure}
+
+
+As transições de estado dependem de entradas de controle (\texttt{iniciar}, \texttt{comp\_p\_out}, \texttt{igual}) e seguem um padrão determinístico que garante conclusão da operação.
+
+
+O controlador gera onze sinais de controle distintos que coordenam as operações do caminho de dados. Sinais críticos incluem habilitações de contador (\texttt{cn}, \texttt{cp}), cargas de registrador (\texttt{car\_A}, \texttt{car\_B}), e habilitações de cálculo de endereço (\texttt{cend1}, \texttt{cend2}).
+
+\subsection{Bloco Operativo}
+
+O bloco operativo (\texttt{matriz\_bo}) implementa os aspectos computacionais da transposição de matrizes. Componentes principais incluem:
+
+\subsubsection{Gerenciamento de Contadores}
+Dois contadores independentes rastreiam a posição atual da matriz:
+\begin{itemize}
+\item \texttt{n\_count}: Contador de linha (0 a N-1)
+\item \texttt{p\_count}: Contador de coluna (0 a P-1)
+\end{itemize}
+
+As atualizações dos contadores seguem um padrão de loop aninhado, onde o contador de coluna incrementa para cada elemento, e o contador de linha incrementa quando uma linha completa é processada.
+
+\subsubsection{Geração de Endereços}
+O componente \texttt{element\_pos} calcula endereços de memória usando a fórmula:
+\begin{align}
+\text{address}_1 &= N \times \text{n\_count} + \text{p\_count} \\
+\text{address}_2 &= N \times \text{p\_count} + \text{n\_count}
+\end{align}
+
+Este esquema de endereçamento garante que os elementos $A_{ij}$ e $A_{ji}$ sejam acessados simultaneamente, possibilitando transposição eficiente.
+
+\subsubsection{Lógica de Comparação}
+Dois comparadores determinam os limites da operação:
+\begin{itemize}
+\item \texttt{comparador\_n}: Detecta conclusão de linha (n\_count = N-1)
+\item \texttt{comparador\_p}: Habilita incremento do contador de coluna (p\_count + 1 < P)
+\end{itemize}
+
+\section{Detalhes de Implementação}
+
+\subsection{Estratégia de Parametrização}
+
+O projeto emprega generics em VHDL para alcançar configurabilidade:
+\begin{lstlisting}[style=vhdl]
+generic(
+    W : positive := 8;  -- Largura da dimensão da matriz
+    tamanho : positive := 8  -- Largura do elemento de dados
+);
+\end{lstlisting}
+
+\begin{itemize}
+\item \textbf{Generics:}
+\begin{itemize}
+\item \texttt{W}: largura dos endereços (bits), padrão 8
+\item \texttt{tamanho}: largura dos dados (bits), padrão 1
+\end{itemize}
+\end{itemize}
+
+\subsection{Protocolo de Interface de Memória}
+
+O sistema implementa uma interface de memória dual-port com controle separado de leitura/escrita. A sequência de protocolo para cada passo de transposição envolve:
+
+\begin{enumerate}
+\item Cálculo e registro de endereços
+\item Operação de leitura da memória com apresentação de endereços
+\item Captura de dados em registradores temporários
+\item Operação de escrita da memória com apresentação de dados
+\end{enumerate}
+
+Este protocolo garante integridade dos dados e suporta vários requisitos de temporização de memória.
+
+\section{Projeto da Biblioteca de Componentes}
+
+A implementação aproveita uma biblioteca abrangente de componentes que inclui:
+
+\subsection{Blocos de Construção Básicos}
+\begin{itemize}
+\item \texttt{unsigned\_register}: Registrador parametrizável com habilitação
+\item \texttt{unsigned\_adder}: Adição sem sinal de N bits
+\item \texttt{mux\_2to1}, \texttt{mux\_3to1}: Componentes multiplexadores
+\end{itemize}
+
+\subsection{Componentes Especializados}
+\begin{itemize}
+\item \texttt{comparador\_n}, \texttt{comparador\_p}: Detecção de fronteira
+\item \texttt{element\_pos}: Unidade de cálculo de endereços
+\end{itemize}
+
+Esta abordagem modular facilita reutilização de projeto e simplifica manutenção.
+
+\section{Aplicações e Extensões}
+
+O sistema de transposição de matrizes encontra aplicações em:
+
+\begin{itemize}
+\item Algoritmos de processamento digital de sinais
+\item Operações de processamento de imagens
+\item Computações de álgebra linear
+\item Reorganização de dados em aplicações de streaming
+\end{itemize}
+
+Extensões potenciais incluem:
+\begin{itemize}
+\item Transposição baseada em blocos para matrizes maiores
+\item Implementação pipeline para aumento de throughput
+\item Integração com unidades de multiplicação de matrizes
+\item Suporte para matrizes de números complexos
+\end{itemize}
+
+\section{Conclusão}
+
+Este artigo apresentou uma implementação abrangente em VHDL de um sistema de transposição de matrizes apresentando dimensões configuráveis e utilização eficiente de memória. O projeto demonstra a aplicação efetiva de princípios de máquina de estados finitos e metodologias de projeto estrutural na criação de hardware especializado para operações matriciais.
+
+A arquitetura modular e projeto parametrizável permitem adaptação a vários requisitos de aplicação mantendo eficiência de hardware. A interface de memória dual-port e esquema de endereçamento otimizado fornecem vantagens significativas de desempenho sobre implementações em software.
+
+\section*{Agradecimentos}
+
+Os autores agradecem ao Laboratório de Sistemas Digitais da UFSC por fornecer o ambiente de desenvolvimento e infraestrutura de teste que tornou este trabalho possível.
+
+\begin{thebibliography}{00}
+\bibitem{b1} **Material didático da disciplina INE5406 - Sistemas Digitais (UFSC)**, incluindo slides e exemplos fornecidos em aula. 
+\bibitem{b2} VAHID, Frank. Sistemas Digitais: projeto, otimização e HDLs. Porto Alegre: Bookman, 2008. ISBN978-85-7780-190-9
+\bibitem{b3} PATTERSON, David A.; HENNESSY, John L. Organização e Projeto de Computadores: a interface
+hardware/software. Rio de Janeiro: Elsevier, 2005. ISBN 85-352-1521-2
+\bibitem{b4} IEEE Computer Society, "IEEE Standard VHDL Language Reference Manual," IEEE Std 1076-2008, 2009.
+
+\end{thebibliography}
+
+\end{document}
